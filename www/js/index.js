@@ -1,3 +1,4 @@
+
 document.addEventListener("deviceready", function () {
 
     // Navegación principal: cada sensor y el historial tienen su propia pestaña.
@@ -16,21 +17,12 @@ document.addEventListener("deviceready", function () {
     }
     tabButtons.forEach(button => button.addEventListener("click", () => activateTab(button.dataset.tab)));
 
-
-    // =====================================================
-    // CONTROL GENERAL DE SENSORES
-    // =====================================================
-
     let activeSensor = null;
     let sensorInterval = null;
     let activeStartButton = null;
     let activeStopButton = null;
     let activeSessionId = null;
     let lastSavedAt = {};
-
-    // =====================================================
-    // HISTORIAL LOCAL DE MEDICIONES (ETAPA 4)
-    // =====================================================
 
     const HISTORY_KEY = "sensorlab_measurement_history_v1";
     const HISTORY_LIMIT = 1200;
@@ -172,12 +164,23 @@ document.addEventListener("deviceready", function () {
 
     function exportHistoryToCsv() {
         const selected = historyFilter ? historyFilter.value : "all";
+
         const records = selected === "all"
             ? historyRecords
             : historyRecords.filter(item => item.sensor === selected);
 
         if (!records.length) {
             window.alert("No hay registros para exportar con el filtro seleccionado.");
+            return;
+        }
+
+        if (!window.cordova || !cordova.file) {
+            window.alert("El sistema de archivos de SensorLab no está disponible.");
+            return;
+        }
+
+        if (!cordova.plugins || !cordova.plugins.fileOpener2) {
+            window.alert("El complemento para abrir archivos no está disponible.");
             return;
         }
 
@@ -192,22 +195,57 @@ document.addEventListener("deviceready", function () {
             item.details,
             new Date(item.timestamp).toLocaleString("es-CL")
         ]);
+
         const csv = "\uFEFF" + [headers, ...rows]
             .map(row => row.map(csvEscape).join(";"))
             .join("\r\n");
 
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
         const now = new Date();
-        const stamp = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0"), "_", String(now.getHours()).padStart(2, "0"), String(now.getMinutes()).padStart(2, "0")].join("");
-        link.href = url;
-        link.download = "SensorLab_historial_" + stamp + ".csv";
-        link.style.display = "none";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+        const stamp = [
+            now.getFullYear(),
+            String(now.getMonth() + 1).padStart(2, "0"),
+            String(now.getDate()).padStart(2, "0"),
+            "_",
+            String(now.getHours()).padStart(2, "0"),
+            String(now.getMinutes()).padStart(2, "0")
+        ].join("");
+
+        const fileName = "SensorLab_historial_" + stamp + ".csv";
+        const directory = cordova.file.externalDataDirectory || cordova.file.dataDirectory;
+
+        window.resolveLocalFileSystemURL(directory, function (directoryEntry) {
+            directoryEntry.getFile(fileName, { create: true, exclusive: false }, function (fileEntry) {
+                fileEntry.createWriter(function (writer) {
+                    writer.onerror = function (error) {
+                        console.error("Error escribiendo CSV:", error);
+                        window.alert("No se pudo guardar el archivo CSV.");
+                    };
+
+                    writer.onwriteend = function () {
+                        cordova.plugins.fileOpener2.open(fileEntry.nativeURL, "text/csv", {
+                            success: function () {
+                                console.log("CSV abierto correctamente:", fileEntry.nativeURL);
+                            },
+                            error: function (error) {
+                                console.error("Error abriendo CSV:", error);
+                                window.alert("El archivo CSV fue guardado, pero no se pudo abrir automáticamente. Ubicación: " + fileEntry.nativeURL);
+                            }
+                        });
+                    };
+
+                    writer.write(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+                }, function (error) {
+                    console.error("Error creando escritor CSV:", error);
+                    window.alert("No se pudo preparar el archivo CSV.");
+                });
+            }, function (error) {
+                console.error("Error creando archivo CSV:", error);
+                window.alert("No se pudo crear el archivo CSV.");
+            });
+        }, function (error) {
+            console.error("Error accediendo al almacenamiento:", error);
+            window.alert("No se pudo acceder al almacenamiento del dispositivo.");
+        });
     }
 
     if (historyFilter) historyFilter.addEventListener("change", renderHistory);
@@ -649,6 +687,7 @@ document.addEventListener("deviceready", function () {
             saveToPhotoAlbum: true
         });
     });
+
 
     const magX = document.getElementById("magX");
     const magY = document.getElementById("magY");
