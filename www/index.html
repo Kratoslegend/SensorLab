@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src *; img-src 'self' data: content:;">
+
+    <title>SensorLab</title>
+    <link rel="stylesheet" href="css/index.css">
+</head>
+
+<body>
+    <main class="container">
+
+        <header>
+            <h1>SensorLab</h1>
+            <p>Laboratorio de sensores · Panel de monitoreo</p>
+        </header>
+
+        <section id="lightPanel" class="sensor-card tab-panel active">
+            <h2>Sensor de luminosidad</h2>
+            <p>Lectura del sensor de luz ambiental</p>
+
+            <div class="reading">
+                <span id="lightValue">--</span>
+                <small>lux (lx)</small>
+            </div>
+
+            <p id="status">Esperando inicio del sensor...</p>
+
+            <div class="interpretation">
+                <strong>Interpretación de iluminación</strong>
+                <p id="lightInterpretation">Inicia el sensor para analizar la iluminación.</p>
+            </div>
+            <div class="visual-indicator">
+                <div class="indicator-heading"><span>Nivel de iluminación</span><strong id="lightLevelLabel">Sin lectura</strong></div>
+                <div class="meter-track"><div id="lightMeter" class="meter-fill" style="width:0%"></div></div>
+                <div class="meter-scale"><span>Oscuro</span><span>Intenso</span></div>
+            </div>
+            <div class="chart-panel">
+                <div class="chart-heading"><strong>Historial reciente de luz</strong><span>Últimas 30 lecturas · lux</span></div>
+                <canvas id="lightChart" class="sensor-chart" role="img" aria-label="Gráfico de las últimas mediciones de luminosidad"></canvas>
+            </div>
+
+            <div class="actions">
+                <button id="startButton">Iniciar sensor</button>
+                <button id="stopButton" disabled>Detener sensor</button>
+            </div>
+        </section>
+
+        <section id="gpsPanel" class="sensor-card tab-panel">
+            <h2>Geolocalización GPS</h2>
+            <p>Obtener la ubicación actual del dispositivo</p>
+
+            <div class="gps-data">
+                <p>Latitud: <strong id="latitude">--</strong></p>
+                <p>Longitud: <strong id="longitude">--</strong></p>
+                <p>Precisión: <strong id="accuracy">--</strong></p>
+            </div>
+
+            <p id="gpsStatus">Ubicación pendiente</p>
+
+            <div class="interpretation">
+                <strong>Interpretación de precisión</strong>
+                <p id="gpsInterpretation">Solicita tu ubicación para analizar la precisión.</p>
+            </div>
+            <div class="visual-indicator">
+                <div class="indicator-heading"><span>Calidad estimada de ubicación</span><strong id="gpsQualityLabel">Sin lectura</strong></div>
+                <div class="meter-track"><div id="gpsMeter" class="meter-fill" style="width:0%"></div></div>
+                <div class="meter-scale"><span>Baja</span><span>Alta</span></div>
+            </div>
+
+            <div class="actions">
+                <button id="gpsButton">Obtener ubicación</button>
+            </div>
+        </section>
+
+        <section id="cameraPanel" class="sensor-card tab-panel">
+            <h2>Cámara del dispositivo</h2>
+            <p>Capturar una fotografía utilizando la cámara nativa</p>
+
+            <div class="actions">
+                <button id="cameraButton">Abrir cámara</button>
+            </div>
+
+            <p id="cameraStatus">Cámara pendiente</p>
+
+            <div class="interpretation">
+                <strong>Resultado de captura</strong>
+                <p id="cameraInterpretation">Aquí se mostrará el resultado de la fotografía.</p>
+            </div>
+            <div class="visual-indicator camera-indicator">
+                <span id="cameraIndicator" class="state-dot state-idle"></span>
+                <strong id="cameraIndicatorLabel">Cámara sin actividad</strong>
+            </div>
+
+            <img id="photoPreview"
+                 alt="Fotografía capturada"
+                 style="display:none; max-width:100%; height:auto; margin-top:15px;">
+        </section>
+
+        <section id="magnetometerPanel" class="sensor-card tab-panel">
+            <h2>Magnetómetro</h2>
+            <p>Medición del campo magnético del entorno</p>
+
+            <div class="gps-data">
+                <p>Eje X: <strong id="magX">--</strong> µT</p>
+                <p>Eje Y: <strong id="magY">--</strong> µT</p>
+                <p>Eje Z: <strong id="magZ">--</strong> µT</p>
+                <p>Intensidad: <strong id="magTotal">--</strong> µT</p>
+            </div>
+
+            <p id="magStatus">Sensor pendiente</p>
+
+            <div class="interpretation">
+                <strong>Análisis del campo magnético</strong>
+                <p id="magInterpretation">Inicia el sensor para analizar el campo magnético.</p>
+            </div>
+            <div class="visual-indicator">
+                <div class="indicator-heading"><span>Variación entre lecturas</span><strong id="magStabilityLabel">Sin lectura</strong></div>
+                <div class="meter-track"><div id="magMeter" class="meter-fill" style="width:0%"></div></div>
+                <div class="meter-scale"><span>Estable</span><span>Variable</span></div>
+            </div>
+            <div class="chart-panel">
+                <div class="chart-heading"><strong>Historial reciente del campo magnético</strong><span>Últimas 30 lecturas · µT</span></div>
+                <canvas id="magChart" class="sensor-chart" role="img" aria-label="Gráfico de las últimas mediciones del campo magnético"></canvas>
+            </div>
+
+            <div class="actions">
+                <button id="startMagButton">Iniciar magnetómetro</button>
+                <button id="stopMagButton" disabled>Detener</button>
+            </div>
+        </section>
+
+        <section id="accelerometerPanel" class="sensor-card tab-panel">
+            <h2>Acelerómetro</h2>
+            <p>Detecta movimiento e inclinación en tres ejes</p>
+
+            <div class="gps-data">
+                <p>Eje X: <strong id="accelX">--</strong> m/s²</p>
+                <p>Eje Y: <strong id="accelY">--</strong> m/s²</p>
+                <p>Eje Z: <strong id="accelZ">--</strong> m/s²</p>
+                <p>Magnitud total: <strong id="accelTotal">--</strong> m/s²</p>
+            </div>
+
+            <p id="accelerometerStatus">Sensor pendiente</p>
+
+            <div class="interpretation">
+                <strong>Análisis del movimiento</strong>
+                <p id="accelerometerInterpretation">Inicia el sensor para analizar el movimiento.</p>
+            </div>
+            <div class="visual-indicator">
+                <div class="indicator-heading"><span>Actividad detectada</span><strong id="accelActivityLabel">Sin lectura</strong></div>
+                <div class="meter-track"><div id="accelMeter" class="meter-fill" style="width:0%"></div></div>
+                <div class="meter-scale"><span>Baja</span><span>Alta</span></div>
+            </div>
+            <div class="chart-panel">
+                <div class="chart-heading"><strong>Historial reciente de aceleración</strong><span>Últimas 30 lecturas · m/s²</span></div>
+                <canvas id="accelChart" class="sensor-chart" role="img" aria-label="Gráfico de las últimas mediciones de aceleración"></canvas>
+            </div>
+
+            <div class="actions">
+                <button id="startAccelerometerButton">Iniciar acelerómetro</button>
+                <button id="stopAccelerometerButton" disabled>Detener</button>
+            </div>
+        </section>
+
+        <section id="gyroscopePanel" class="sensor-card tab-panel">
+            <h2>Giroscopio</h2>
+            <p>Detecta la velocidad de rotación del dispositivo</p>
+
+            <div class="gps-data">
+                <p>Eje X: <strong id="gyroX">--</strong> rad/s</p>
+                <p>Eje Y: <strong id="gyroY">--</strong> rad/s</p>
+                <p>Eje Z: <strong id="gyroZ">--</strong> rad/s</p>
+                <p>Rotación total: <strong id="gyroTotal">--</strong> °/s</p>
+            </div>
+
+            <p id="gyroscopeStatus">Sensor pendiente</p>
+
+            <div class="interpretation">
+                <strong>Análisis de rotación</strong>
+                <p id="gyroscopeInterpretation">Inicia el sensor para analizar la rotación.</p>
+            </div>
+            <div class="visual-indicator">
+                <div class="indicator-heading"><span>Velocidad de rotación</span><strong id="gyroSpeedLabel">Sin lectura</strong></div>
+                <div class="meter-track"><div id="gyroMeter" class="meter-fill" style="width:0%"></div></div>
+                <div class="meter-scale"><span>Lenta</span><span>Rápida</span></div>
+            </div>
+            <div class="chart-panel">
+                <div class="chart-heading"><strong>Historial reciente de rotación</strong><span>Últimas 30 lecturas · °/s</span></div>
+                <canvas id="gyroChart" class="sensor-chart" role="img" aria-label="Gráfico de las últimas mediciones de rotación"></canvas>
+            </div>
+
+            <div class="actions">
+                <button id="startGyroscopeButton">Iniciar giroscopio</button>
+                <button id="stopGyroscopeButton" disabled>Detener</button>
+            </div>
+        </section>
+
+        <section id="historyPanel" class="sensor-card history-card tab-panel">
+            <div class="history-title-row">
+                <div>
+                    <h2>Historial de mediciones</h2>
+                    <p>Registro local de actividad del dispositivo</p>
+                </div>
+                <span class="history-storage-badge">ALMACENAMIENTO LOCAL</span>
+            </div>
+            <div class="history-stats">
+                <div class="history-stat"><span id="historyTotal">0</span><small>Registros guardados</small></div>
+                <div class="history-stat"><span id="historySensors">0</span><small>Sensores utilizados</small></div>
+                <div class="history-stat"><span id="historyLast">--</span><small>Último registro</small></div>
+            </div>
+            <section class="statistics-section" aria-labelledby="statisticsTitle">
+                <div class="statistics-heading"><div><h3 id="statisticsTitle">Estadísticas de mediciones</h3><p>Resumen calculado a partir del historial guardado</p></div><span class="statistics-live-badge">DATOS LOCALES</span></div>
+                <div class="statistics-summary">
+                    <article class="statistics-card"><span class="statistics-icon">▦</span><small>Mediciones numéricas</small><strong id="statsCount">0</strong></article>
+                    <article class="statistics-card"><span class="statistics-icon">∿</span><small>Promedio</small><strong id="statsAverage">--</strong></article>
+                    <article class="statistics-card"><span class="statistics-icon">↗</span><small>Máximo</small><strong id="statsMaximum">--</strong></article>
+                    <article class="statistics-card"><span class="statistics-icon">↘</span><small>Mínimo</small><strong id="statsMinimum">--</strong></article>
+                </div>
+                <div class="statistics-breakdown"><h4>Registros por sensor</h4><div id="statsSensorBreakdown" class="statistics-breakdown-list"><p class="statistics-empty">Todavía no hay datos para analizar.</p></div></div>
+                <p id="statisticsContext" class="statistics-context">Las estadísticas se actualizan al guardar nuevas mediciones.</p>
+            </section>
+            <div class="history-controls">
+                <label for="historyFilter">Filtrar registros</label>
+                <select id="historyFilter">
+                    <option value="all">Todos los registros</option>
+                    <option value="LIGHT">Luminosidad</option>
+                    <option value="GPS">GPS</option>
+                    <option value="CAMERA">Cámara</option>
+                    <option value="MAGNETIC_FIELD">Magnetómetro</option>
+                    <option value="ACCELEROMETER">Acelerómetro</option>
+                    <option value="GYROSCOPE">Giroscopio</option>
+                </select>
+            </div>
+            <div id="historyList" class="history-list">
+                <div class="history-empty">Todavía no hay mediciones guardadas.</div>
+            </div>
+            <div class="history-actions">
+                <button id="exportHistoryButton" class="export-button">Exportar CSV</button>
+                <button id="refreshHistoryButton" class="secondary-button">Actualizar historial</button>
+                <button id="clearHistoryButton" class="danger-button">Borrar historial</button>
+            </div>
+            <p class="history-note">Los datos se guardan únicamente en este dispositivo. Se conserva un máximo de 1.200 registros para controlar el espacio utilizado. Las fotografías no se copian al historial. La exportación CSV incluye los registros que coinciden con el filtro seleccionado.</p>
+        </section>        <footer>
+            <p>SensorLab | Apache Cordova</p>
+            <p>Demostración de funcionalidades nativas Android</p>
+        </footer>
+
+    </main>
+
+        <nav class="bottom-nav" aria-label="Navegación principal">
+            <button class="nav-tab active" type="button" data-tab="lightPanel" aria-label="Luminosidad" aria-selected="true"><span class="nav-icon" aria-hidden="true">☀️</span><span>Luz</span></button>
+            <button class="nav-tab" type="button" data-tab="gpsPanel" aria-label="GPS" aria-selected="false"><span class="nav-icon" aria-hidden="true">📍</span><span>GPS</span></button>
+            <button class="nav-tab" type="button" data-tab="cameraPanel" aria-label="Cámara" aria-selected="false"><span class="nav-icon" aria-hidden="true">📷</span><span>Cámara</span></button>
+            <button class="nav-tab" type="button" data-tab="magnetometerPanel" aria-label="Magnetómetro" aria-selected="false"><span class="nav-icon" aria-hidden="true">🧲</span><span>Magnet.</span></button>
+            <button class="nav-tab" type="button" data-tab="accelerometerPanel" aria-label="Acelerómetro" aria-selected="false"><span class="nav-icon" aria-hidden="true">📳</span><span>Acel.</span></button>
+            <button class="nav-tab" type="button" data-tab="gyroscopePanel" aria-label="Giroscopio" aria-selected="false"><span class="nav-icon" aria-hidden="true">🌀</span><span>Giro</span></button>
+            <button class="nav-tab" type="button" data-tab="historyPanel" aria-label="Historial" aria-selected="false"><span class="nav-icon" aria-hidden="true">🗂️</span><span>Historial</span></button>
+        </nav>
+
+    <script src="cordova.js"></script>
+    <script src="js/index.js"></script>
+</body>
+</html>
